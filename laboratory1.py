@@ -207,7 +207,7 @@ def chord_method(f: callable, left_border: float, right_border: float, iteration
 
         cnt_it -= 1
 
-    return c
+    return l - val_l * (r - l) / (val_r - val_l)
 
 
 def newton_method(f: callable, left_border: float, right_border: float, iterations: int):
@@ -228,9 +228,6 @@ def is_between(s: float, l: float, r: float):
 if __name__ == '__main__':
     # строю график функции
     draw_function_graphic(f, -1, 6, roots_intervals=find_roots_intervals(f, -1, 6))
-    print(find_all_roots(bisection_method, f, -1, 6, None, iterations=5))
-    print(find_all_roots(chord_method, f, -1, 6, None, iterations=5))
-    print(find_all_roots(newton_method, f, -1, 6, None, iterations=5))
     create_comparison_graphic([bisection_method, chord_method, newton_method], f, [-1, 6], ['red', 'green', 'blue'],
                               ['Метод деления отрезка пополам', 'Метод хорд', 'Метод Ньютона'],
                               [1, 17], [0, 1, 5], step=1)
