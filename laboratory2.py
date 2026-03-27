@@ -1,10 +1,11 @@
-from abc import ABC, abstractmethod
-from typing import Type
+from abc import ABC
+import random
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 ANALYTIC_VALUE = -18.11347301218
+ANALYTIC_VALUE_TRIPLE = 0.037037037
 
 
 class Drawer:
@@ -87,15 +88,16 @@ class Drawer:
 
     @staticmethod
     def plot_all_methods_errors(
-            integrator_classes: [],
+            integrator_classes: ['NumericalIntegrator'],
             method_names: [str],
             exact_value: float,
-            a: float,
-            b: float,
+            borders: [float],
             func: callable,
             n_values: [int],
             y_lim_absolute: tuple[float] = (0, 20),
             y_lim_rel: tuple[float] = (1e-3, 3),
+            title: str = None,
+            method_from_getattr_name: str = 'integrate'
     ):
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
@@ -104,9 +106,9 @@ class Drawer:
         for integrator_class, method_name, color in zip(integrator_classes, method_names, colors):
             abs_errors = []
             rel_errors = []
-
+            method = getattr(integrator_class, method_from_getattr_name)
             for n in n_values:
-                approx = integrator_class.integrate([a, b], func, n)
+                approx = method(borders, func, n)
 
                 abs_error = abs(approx - exact_value)
                 rel_error = abs_error / abs(exact_value) if exact_value != 0 else abs_error
@@ -135,6 +137,8 @@ class Drawer:
         ax2.grid(True, alpha=0.3)
         ax2.legend(loc=1)
 
+        if title:
+            fig.suptitle(title)
         plt.tight_layout()
         plt.show()
 
@@ -153,7 +157,11 @@ class NumericalIntegrator(ABC):
         pass
 
     @staticmethod
-    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100):
+    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100) -> (int, int):
+        pass
+
+    @staticmethod
+    def integrate_triple(borders_x_y_z: [], func: callable, intervals_cnt: int):
         pass
 
 
@@ -171,6 +179,16 @@ class LeftRectangleMethod(NumericalIntegrator):
             else:
                 l = m + 1
         return LeftRectangleMethod.integrate(borders, func, good_iter_cnt), good_iter_cnt
+
+    @staticmethod
+    def integrate_triple(borders_x_y_z: [], func: callable, intervals_cnt: int):
+        x_0, x_1, y_0, y_1, z_0, z_1 = borders_x_y_z
+        intervals_x = LeftRectangleMethod._build_intervals([x_0, x_1], intervals_cnt)
+        intervals_y = LeftRectangleMethod._build_intervals([y_0, y_1], intervals_cnt)
+        intervals_z = LeftRectangleMethod._build_intervals([z_0, z_1], intervals_cnt)
+        return sum(
+            func(x[0], y[0], z[0]) * ((x[1] - x[0]) * (y[1] - y[0]) * (z[1] - z[0])) for z in intervals_z for y in
+            intervals_y for x in intervals_x)
 
     @staticmethod
     def integrate(borders: [], func: callable, intervals_cnt: int):
@@ -278,15 +296,25 @@ class SimpsonMethod(NumericalIntegrator):
 
 
 class MonteCarloMethod:
-    def calc_single_integral(self, func: callable, random_points_cnt: int):
-        pass
+    @staticmethod
+    def integrate(borders: [], func: callable, random_points_cnt: int):
+        return (borders[1] - borders[0]) / random_points_cnt * sum(
+            func(random.uniform(borders[0], borders[1])) for _ in range(random_points_cnt))
 
-    def calc_triple_integral(self):
-        pass
+    @staticmethod
+    def integrate_triple(borders_x_y_z: [], func: callable, random_points_cnt: int):
+        x_0, x_1, y_0, y_1, z_0, z_1 = borders_x_y_z
+        return ((x_1 - x_0) * (y_1 - y_0) * (z_1 - z_0)) / random_points_cnt * sum(
+            func(random.uniform(x_0, x_1), random.uniform(y_0, y_1),
+                 random.uniform(z_0, z_1)) for _ in range(random_points_cnt))
 
 
-def f(x: int):
+def f(x: float):
     return np.pow(x, 2) * np.sin(x)
+
+
+def f1(x: float, y: float, z: float):
+    return x ** 2 * y ** 2 * z ** 2
 
 
 if __name__ == '__main__':
@@ -305,7 +333,7 @@ if __name__ == '__main__':
     Drawer.plot_all_methods_errors(
         [LeftRectangleMethod, RightRectangleMethod, MiddleRectangleMethod, TrapezoidMethod, SimpsonMethod],
         ["Левые прямоугольники", "Правые прямоугольники", "Центральные прямоугольники", "Трапеции",
-         "Симпсон"], ANALYTIC_VALUE, 0, 5, f, splits)
+         "Симпсон"], ANALYTIC_VALUE, [0, 5], f, splits)
 
     # задание 2
     accuracy_values = [1e-5 + i * 25e-6 for i in range(int((1e-2 - 1e-5) / 25e-6) + 1)]
@@ -326,3 +354,12 @@ if __name__ == '__main__':
         accuracy_values=accuracy_values,
         title="Метод Симпсона: зависимость N от ε (логарифмический масштаб)"
     )
+
+    # задание 3
+    Drawer.plot_all_methods_errors([LeftRectangleMethod, MonteCarloMethod], ["Левые прямоугольники", "Монте-Карло"],
+                                   ANALYTIC_VALUE, [0, 5], f, splits, title="Сравнение на одиночном интеграле")
+
+    print(LeftRectangleMethod.integrate_triple([0, 1, 0, 1, 0, 1], f1, 100))
+    Drawer.plot_all_methods_errors([LeftRectangleMethod, MonteCarloMethod], ["Левые прямоугольники", "Монте-Карло"],
+                                   ANALYTIC_VALUE_TRIPLE, [0, 1, 0, 1, 0, 1], f1, splits,
+                                   title="Сравнение на тройном интеграле", method_from_getattr_name='integrate_triple')
