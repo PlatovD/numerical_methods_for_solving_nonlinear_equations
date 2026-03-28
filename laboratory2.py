@@ -157,7 +157,7 @@ class NumericalIntegrator(ABC):
         pass
 
     @staticmethod
-    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100) -> (int, int):
+    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100000) -> (int, int):
         pass
 
     @staticmethod
@@ -167,18 +167,18 @@ class NumericalIntegrator(ABC):
 
 class LeftRectangleMethod(NumericalIntegrator):
     @staticmethod
-    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100):
+    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=5000000):
         l, r = 1, max_iterations
-        good_iter_cnt = max_iterations // 2
+        good_iter_cnt = max_iterations // 2 + max_iterations // 6
         while l <= r:
             m = l + (r - l) // 2
-            if abs(LeftRectangleMethod.integrate(borders, f, m) - LeftRectangleMethod.integrate(borders, func,
-                                                                                                2 * m)) <= accuracy:
+            if abs(LeftRectangleMethod.integrate(borders, func, m) - LeftRectangleMethod.integrate(
+                    borders, func, 2 * m)) <= accuracy:
                 good_iter_cnt = m
                 r = m - 1
             else:
                 l = m + 1
-        return LeftRectangleMethod.integrate(borders, func, good_iter_cnt), good_iter_cnt
+        return RightRectangleMethod.integrate(borders, func, good_iter_cnt), good_iter_cnt
 
     @staticmethod
     def integrate_triple(borders_x_y_z: [], func: callable, intervals_cnt: int):
@@ -192,13 +192,15 @@ class LeftRectangleMethod(NumericalIntegrator):
 
     @staticmethod
     def integrate(borders: [], func: callable, intervals_cnt: int):
-        intervals = LeftRectangleMethod._build_intervals(borders, intervals_cnt)
-        return sum(func(interval[0]) * (interval[1] - interval[0]) for interval in intervals)
+        l, r = borders
+        step = (r - l) / intervals_cnt
+        x = np.linspace(l, r - step, intervals_cnt)
+        return (f(x) * step).sum()
 
 
 class RightRectangleMethod(NumericalIntegrator):
     @staticmethod
-    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100):
+    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=5000000):
         l, r = 1, max_iterations
         good_iter_cnt = max_iterations // 2
         while l <= r:
@@ -213,13 +215,15 @@ class RightRectangleMethod(NumericalIntegrator):
 
     @staticmethod
     def integrate(borders: [], func: callable, intervals_cnt: int):
-        intervals = RightRectangleMethod._build_intervals(borders, intervals_cnt)
-        return sum(func(interval[1]) * (interval[1] - interval[0]) for interval in intervals)
+        l, r = borders
+        step = (r - l) / intervals_cnt
+        x = np.linspace(l + step, r, intervals_cnt)
+        return (f(x) * step).sum()
 
 
 class MiddleRectangleMethod(NumericalIntegrator):
     @staticmethod
-    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100):
+    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=1000):
         l, r = 1, max_iterations
         good_iter_cnt = max_iterations // 2
         while l <= r:
@@ -247,7 +251,7 @@ class TrapezoidMethod(NumericalIntegrator):
                    intervals)
 
     @staticmethod
-    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100):
+    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=10000):
         l, r = 1, max_iterations
         good_iter_cnt = max_iterations // 2
         while l <= r:
@@ -270,7 +274,7 @@ class SimpsonMethod(NumericalIntegrator):
                     interval[2] - interval[0]) for interval in intervals)
 
     @staticmethod
-    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=100):
+    def integrate_with_accuracy(borders: [], func: callable, accuracy, max_iterations=10000):
         l, r = 2, max_iterations
         good_iter_cnt = max_iterations // 2
         while l <= r:
