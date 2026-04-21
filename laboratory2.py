@@ -363,7 +363,6 @@ if __name__ == '__main__':
     Drawer.plot_all_methods_errors([LeftRectangleMethod, MonteCarloMethod], ["Левые прямоугольники", "Монте-Карло"],
                                    ANALYTIC_VALUE, [0, 5], f, splits, title="Сравнение на одиночном интеграле")
 
-    print(LeftRectangleMethod.integrate_triple([0, 1, 0, 1, 0, 1], f1, 100))
     Drawer.plot_all_methods_errors([LeftRectangleMethod, MonteCarloMethod], ["Левые прямоугольники", "Монте-Карло"],
                                    ANALYTIC_VALUE_TRIPLE, [0, 1, 0, 1, 0, 1], f1, splits,
                                    title="Сравнение на тройном интеграле", method_from_getattr_name='integrate_triple')
